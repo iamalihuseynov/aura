@@ -78,7 +78,7 @@ const LEVELS=[{name:"Rookie Texter",min:0,color:"#6b7280"},{name:"Smooth Talker"
 const getLevel=xp=>{for(let i=LEVELS.length-1;i>=0;i--)if(xp>=LEVELS[i].min)return{...LEVELS[i],index:i};return{...LEVELS[0],index:0}};
 
 async function callOpenAI(messages, systemPrompt, maxTokens = 600, apiKey) {
-  const res = await fetch("/api/chat", {
+  const res = await fetch("https://aura-production-848e.up.railway.app/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages, systemPrompt, maxTokens, apiKey }),
