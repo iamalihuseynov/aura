@@ -1,37 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Aura — AI Texting Simulator</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Aura</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:#090910;font-family:'DM Sans',sans-serif;overflow:hidden}
-  #root{height:100dvh;display:flex;flex-direction:column}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{height:100%;height:-webkit-fill-available}
+  body{height:100%;height:-webkit-fill-available;background:#090910;font-family:'DM Sans',sans-serif;overflow:hidden;position:fixed;width:100%}
+  #root{height:100%;height:-webkit-fill-available;display:flex;flex-direction:column}
   ::-webkit-scrollbar{width:0}
+  input,textarea{-webkit-appearance:none;appearance:none}
   input:focus,textarea:focus{outline:none}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
-  .fade-up{animation:fadeUp .3s ease forwards}
-  .typing-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);animation:pulse 1.2s ease-in-out infinite;display:inline-block}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .fade-up{animation:fadeUp .25s ease forwards}
+  .typing-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);animation:pulse 1.2s ease-in-out infinite;display:inline-block}
   .typing-dot:nth-child(2){animation-delay:.2s}
   .typing-dot:nth-child(3){animation-delay:.4s}
-  .persona-card{transition:transform .18s ease,box-shadow .18s ease;cursor:pointer}
-  .persona-card:hover{transform:translateY(-3px)}
-  .persona-card:active{transform:scale(.98)}
+  .persona-card{transition:transform .15s ease;cursor:pointer;-webkit-user-select:none;user-select:none}
+  .persona-card:active{transform:scale(.97)}
   .msg-bubble{transition:transform .1s}
   .msg-bubble:active{transform:scale(.97)}
-  .send-btn{transition:all .18s ease}
-  .react-btn{opacity:.45;transition:opacity .15s;background:none;border:none;cursor:pointer;font-size:14px;padding:2px}
-  .react-btn:hover{opacity:1}
-  .suggestion-btn{width:100%;text-align:left;border-radius:12px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:opacity .15s}
-  .suggestion-btn:hover{opacity:.85}
-  .coach-toggle{border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;border-width:1px;border-style:solid;transition:all .2s}
+  .react-btn{opacity:.5;background:none;border:none;cursor:pointer;font-size:16px;padding:3px 4px;line-height:1}
+  .react-btn:active{opacity:1;transform:scale(1.2)}
+  .suggestion-btn{width:100%;text-align:left;border-radius:12px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;gap:10px;align-items:flex-start}
+  .suggestion-btn:active{opacity:.8}
+  .coach-toggle{border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;border-width:1px;border-style:solid}
+  .send-btn:active{transform:scale(.92)}
+  .home-scroll{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .chat-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 8px;display:flex;flex-direction:column;gap:10px;min-height:0}
 </style>
 </head>
 <body>
@@ -39,137 +44,117 @@
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
-// ── PERSONALITIES ─────────────────────────────────────────────────────────────
 const PERSONALITIES = {
-  flirty: {
-    id:"flirty",name:"Zara",emoji:"💋",avatar:"Z",color:"#ff6b9d",tag:"Flirty & Confident",bio:"model vibes, chaotic good energy",
-    systemPrompt:`You are Zara, a flirty, confident girl texting on her phone. You're witty, slightly teasing, love banter. Short texts, minimal punctuation, playful emojis. NOT a chatbot — a real girl with standards. You lose interest in needy guys fast. Reward confidence, wit, mystery.\nTexting style: short, direct, playful. Use "lol","omg","💀","😭", occasional lowercase. Never over-explain. Ghost if bored.\nIMPORTANT: Real text conversation. Keep responses SHORT (1-3 sentences max). Natural, slightly flirty but not easy.`,
-  },
-  sarcastic: {
-    id:"sarcastic",name:"Mia",emoji:"🙄",avatar:"M",color:"#a78bfa",tag:"Dry & Sarcastic",bio:"chronically online, judges everything",
-    systemPrompt:`You are Mia, dry and sarcastic, hard to impress. Not mean but not easy. Love irony, dry humor, calling out cringe. Deadpan delivery, rare compliments.\nTexting style: lowercase, dots "...", "ok.", "sure.", sarcastic reactions. Respect people who match your humor.\nIMPORTANT: SHORT responses. Real and slightly cold unless they earn warmth.`,
-  },
-  shy: {
-    id:"shy",name:"Lily",emoji:"🌸",avatar:"L",color:"#34d399",tag:"Shy Introvert",bio:"bookworm, overthinks everything",
-    systemPrompt:`You are Lily, shy and sweet. Take time to open up. Easily flustered by directness. Love deep conversations once comfortable. Add nervous "haha"s.\nTexting style: nervous "haha"s, "..." when flustered, gentle emojis 🌸☺️. Warms up slowly.\nIMPORTANT: Start awkward, open up if they're kind and patient. Short to medium length.`,
-  },
-  soft: {
-    id:"soft",name:"Ava",emoji:"🤍",avatar:"A",color:"#fbbf24",tag:"Soft & Gentle",bio:"sunsets, journaling, good energy only",
-    systemPrompt:`You are Ava, warm and gentle. Nurturing, positive, but have self-respect. Appreciate emotional awareness. Set limits softly but firmly.\nTexting style: warm, uses "aww","🥺","💛", thoughtful. Not a pushover — has standards. Values emotional connection.\nIMPORTANT: Warm but not a yes-girl. Short-medium responses.`,
-  },
-  social: {
-    id:"social",name:"Kyla",emoji:"✨",avatar:"K",color:"#f97316",tag:"Social Media Girl",bio:"500k followers, always busy",
-    systemPrompt:`You are Kyla, popular social media girl. Always busy, slightly distracted. Fun but hard to pin down. Get bored of basic guys fast. Love confidence.\nTexting style: chaotic, "wdym","oop","bestie","no cap". Gets hyped about interesting things.\nIMPORTANT: Short chaotic texts. Hard to impress but reacts big to the right moves.`,
-  },
-  mature: {
-    id:"mature",name:"Sofia",emoji:"🧠",avatar:"S",color:"#38bdf8",tag:"Emotionally Mature",bio:"therapist energy, reads people well",
-    systemPrompt:`You are Sofia, emotionally intelligent and perceptive. See through games immediately. Value authenticity, depth, real conversation. Not impressed by surface charm.\nTexting style: thoughtful, asks real questions, minimal fluff, no games. Direct and vulnerable.\nIMPORTANT: Medium length, thoughtful. Call out manipulation gently. Reward genuine expression.`,
-  },
+  flirty:{id:"flirty",name:"Zara",emoji:"💋",avatar:"Z",color:"#ff6b9d",tag:"Flirty & Confident",bio:"model vibes, chaotic good energy",
+    systemPrompt:`You are Zara, a flirty confident girl texting. Witty, slightly teasing, love banter. NOT a chatbot. Lose interest in needy guys. Reward confidence and wit.\nStyle: short direct playful texts. "lol","omg","💀","😭", lowercase. Never over-explain.\nIMPORTANT: Keep responses SHORT (1-3 sentences). Natural, slightly flirty but not easy.`},
+  sarcastic:{id:"sarcastic",name:"Mia",emoji:"🙄",avatar:"M",color:"#a78bfa",tag:"Dry & Sarcastic",bio:"chronically online, judges everything",
+    systemPrompt:`You are Mia, dry and sarcastic, hard to impress. Love irony and calling out cringe. Deadpan delivery.\nStyle: lowercase, "...", "ok.", "sure." Respect people who match your humor.\nIMPORTANT: SHORT responses. Slightly cold unless they earn warmth.`},
+  shy:{id:"shy",name:"Lily",emoji:"🌸",avatar:"L",color:"#34d399",tag:"Shy Introvert",bio:"bookworm, overthinks everything",
+    systemPrompt:`You are Lily, shy and sweet. Take time to open up. Easily flustered. Love deep conversations once comfortable.\nStyle: nervous "haha"s, "..." when flustered, gentle emojis 🌸☺️. Warms up slowly.\nIMPORTANT: Start awkward, open up if they're kind. Short to medium texts.`},
+  soft:{id:"soft",name:"Ava",emoji:"🤍",avatar:"A",color:"#fbbf24",tag:"Soft & Gentle",bio:"sunsets, journaling, good energy only",
+    systemPrompt:`You are Ava, warm and gentle. Nurturing but have self-respect. Appreciate emotional awareness.\nStyle: warm, "aww","🥺","💛". Not a pushover — has standards.\nIMPORTANT: Warm but not a yes-girl. Short-medium responses.`},
+  social:{id:"social",name:"Kyla",emoji:"✨",avatar:"K",color:"#f97316",tag:"Social Media Girl",bio:"500k followers, always busy",
+    systemPrompt:`You are Kyla, popular social media girl. Always busy, slightly distracted. Hard to pin down.\nStyle: chaotic, "wdym","oop","bestie","no cap". Gets hyped by interesting things.\nIMPORTANT: Short chaotic texts. Hard to impress.`},
+  mature:{id:"mature",name:"Sofia",emoji:"🧠",avatar:"S",color:"#38bdf8",tag:"Emotionally Mature",bio:"therapist energy, reads people well",
+    systemPrompt:`You are Sofia, emotionally intelligent. See through games immediately. Value authenticity and depth.\nStyle: thoughtful, asks real questions, minimal fluff. Direct and vulnerable.\nIMPORTANT: Medium length, thoughtful. Reward genuine expression.`},
 };
 
-const ANALYSIS_SYSTEM = `You are a dating/texting coach AI. Analyze the user's message and return ONLY a JSON object, no markdown, no explanation:
+const ANALYSIS_SYSTEM=`You are a dating/texting coach AI. Analyze the user's message and return ONLY a JSON object, no markdown:
 {"classification":"Good Move"|"Neutral"|"Bad Move","score":<1-100>,"summary":"<2-3 word label>","explanation":"<1 sentence>","better":"<better alternative or null>","metrics":{"confidence":<0-100>,"neediness":<0-100>,"humor":<0-100>,"emotional_iq":<0-100>,"creativity":<0-100>,"cringe_risk":<0-100>}}
-Be honest. Penalize desperation, over-complimenting, one-word replies to long messages. Reward wit, confidence, push-pull, mystery.`;
+Penalize desperation, over-complimenting. Reward wit, confidence, mystery.`;
 
 const RIZZ_LABELS={0:"💀 Cooked",10:"😬 Struggling",20:"😅 Rookie",30:"🙂 Okay-ish",40:"😏 Getting There",50:"🔥 Decent Rizz",60:"😎 Smooth",70:"💎 Charmer",80:"⚡ Elite",90:"🌟 Dangerous",100:"👑 Legendary"};
-const getRizzLabel=s=>{const k=Math.floor(s/10)*10;return RIZZ_LABELS[Math.min(k,100)]||RIZZ_LABELS[0]};
-
+const getRizzLabel=s=>RIZZ_LABELS[Math.min(Math.floor(s/10)*10,100)]||RIZZ_LABELS[0];
 const LEVELS=[{name:"Rookie Texter",min:0,color:"#6b7280"},{name:"Smooth Talker",min:200,color:"#10b981"},{name:"Charmer",min:600,color:"#3b82f6"},{name:"Dangerous",min:1200,color:"#8b5cf6"},{name:"Elite",min:2000,color:"#f59e0b"}];
 const getLevel=xp=>{for(let i=LEVELS.length-1;i>=0;i--)if(xp>=LEVELS[i].min)return{...LEVELS[i],index:i};return{...LEVELS[0],index:0}};
 
-async function callOpenAI(messages, systemPrompt, maxTokens = 600, apiKey) {
-  const res = await fetch("https://aura-production-848e.up.railway.app/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, systemPrompt, maxTokens, apiKey }),
+async function callOpenAI(messages,systemPrompt,maxTokens=600,apiKey){
+  const res=await fetch("/api/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({messages,systemPrompt,maxTokens,apiKey}),
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.choices?.[0]?.message?.content || "";
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message);
+  return data.choices?.[0]?.message?.content||"";
 }
 
-// ── SCREENS ──────────────────────────────────────────────────────────────────
-
-function KeyScreen({onSave}) {
-  const [key, setKey] = useState("");
-  const [err, setErr] = useState("");
-  const submit = () => {
-if(!key.trim()) { setErr("Please enter your API key"); return; }    onSave(key.trim());
+// ── KEY SCREEN ────────────────────────────────────────────────────────────────
+function KeyScreen({onSave}){
+  const [key,setKey]=useState("");
+  const [err,setErr]=useState("");
+  const submit=()=>{
+    if(!key.trim()){setErr("Please enter your API key");return;}
+    onSave(key.trim());
   };
-  return (
-    <div style={{minHeight:"100dvh",background:"#090910",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px"}}>
-      <div style={{textAlign:"center",marginBottom:40}}>
-        <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:64,fontWeight:800,background:"linear-gradient(135deg,#fff 0%,#ff6b9d 50%,#c084fc 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1,letterSpacing:-2}}>Aura</h1>
+  return(
+    <div style={{height:"100%",background:"#090910",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px"}}>
+      <div style={{textAlign:"center",marginBottom:36}}>
+        <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:72,fontWeight:800,background:"linear-gradient(135deg,#fff 0%,#ff6b9d 50%,#c084fc 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1,letterSpacing:-3}}>Aura</h1>
         <p style={{color:"rgba(255,255,255,.4)",fontSize:14,marginTop:10}}>AI texting coach & flirting simulator</p>
       </div>
       <div style={{width:"100%",maxWidth:360}}>
-        <p style={{color:"rgba(255,255,255,.35)",fontSize:11,fontWeight:600,letterSpacing:2,marginBottom:10}}>OPENAI API KEY</p>
+        <p style={{color:"rgba(255,255,255,.35)",fontSize:11,fontWeight:600,letterSpacing:2,marginBottom:10}}>YOUR API KEY</p>
         <input
           type="password"
           value={key}
           onChange={e=>{setKey(e.target.value);setErr("");}}
           onKeyDown={e=>e.key==="Enter"&&submit()}
-          placeholder="sk-..."
+          placeholder="sk-... or gsk_..."
           autoFocus
           style={{width:"100%",background:"rgba(255,255,255,.06)",border:`1px solid ${err?"rgba(239,68,68,.6)":"rgba(255,255,255,.12)"}`,borderRadius:16,padding:"14px 18px",color:"#fff",fontSize:15,fontFamily:"'DM Sans',sans-serif",marginBottom:8}}
         />
-        {err && <p style={{color:"#ef4444",fontSize:12,marginBottom:8,paddingLeft:4}}>{err}</p>}
-        <button
-          onClick={submit}
-          style={{width:"100%",background:"linear-gradient(135deg,#ff6b9d,#c084fc)",border:"none",borderRadius:16,padding:"14px",color:"#fff",fontSize:15,fontWeight:700,fontFamily:"'Syne',sans-serif",cursor:"pointer",boxShadow:"0 8px 24px rgba(255,107,157,.3)"}}
-        >
+        {err&&<p style={{color:"#ef4444",fontSize:12,marginBottom:8,paddingLeft:4}}>{err}</p>}
+        <button onClick={submit} style={{width:"100%",background:"linear-gradient(135deg,#ff6b9d,#c084fc)",border:"none",borderRadius:16,padding:"15px",color:"#fff",fontSize:16,fontWeight:700,fontFamily:"'Syne',sans-serif",cursor:"pointer",boxShadow:"0 8px 24px rgba(255,107,157,.3)"}}>
           Let's Go →
         </button>
-        <p style={{color:"rgba(255,255,255,.18)",fontSize:11,marginTop:12,textAlign:"center",lineHeight:1.6}}>
-          Your key is stored only in your browser memory.<br/>Never sent anywhere except directly to OpenAI.
+        <p style={{color:"rgba(255,255,255,.18)",fontSize:11,marginTop:12,textAlign:"center",lineHeight:1.7}}>
+          Key stays in browser memory only.<br/>Never stored or shared.
         </p>
       </div>
     </div>
   );
 }
 
-function HomeScreen({apiKey, onStart, rizzScore, xp}) {
-  const level = getLevel(xp);
-  return (
-    <div style={{minHeight:"100dvh",background:"#090910",overflowY:"auto"}}>
-      <div style={{padding:"48px 24px 0",textAlign:"center"}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(255,107,157,.12)",border:"1px solid rgba(255,107,157,.25)",borderRadius:100,padding:"6px 16px",marginBottom:24}}>
-          <span style={{fontSize:12,color:"#ff6b9d",fontWeight:600,letterSpacing:2}}>AI POWERED</span>
+// ── HOME SCREEN ───────────────────────────────────────────────────────────────
+function HomeScreen({onStart,rizzScore,xp}){
+  const level=getLevel(xp);
+  return(
+    <div className="home-scroll" style={{background:"#090910"}}>
+      <div style={{padding:"40px 20px 0",textAlign:"center"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,107,157,.12)",border:"1px solid rgba(255,107,157,.25)",borderRadius:100,padding:"5px 14px",marginBottom:20}}>
+          <span style={{fontSize:11,color:"#ff6b9d",fontWeight:600,letterSpacing:2}}>AI POWERED</span>
         </div>
-        <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:"clamp(52px,15vw,80px)",fontWeight:800,background:"linear-gradient(135deg,#fff 0%,#ff6b9d 50%,#c084fc 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1,letterSpacing:-2}}>Aura</h1>
-        <p style={{color:"rgba(255,255,255,.45)",fontSize:15,marginTop:12}}>your AI texting coach & flirting simulator</p>
+        <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:"clamp(56px,18vw,80px)",fontWeight:800,background:"linear-gradient(135deg,#fff 0%,#ff6b9d 50%,#c084fc 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1,letterSpacing:-3}}>Aura</h1>
+        <p style={{color:"rgba(255,255,255,.4)",fontSize:14,marginTop:10}}>your AI texting coach</p>
       </div>
 
-      <div style={{display:"flex",justifyContent:"center",gap:32,padding:"28px 24px 0"}}>
-        {[{label:"Rizz Score",value:rizzScore},{label:"Level",value:level.name.split(" ")[0]},{label:"XP",value:xp}].map(s=>(
+      <div style={{display:"flex",justifyContent:"center",gap:28,padding:"20px 20px 0"}}>
+        {[{label:"Rizz",value:rizzScore},{label:"Level",value:level.name.split(" ")[0]},{label:"XP",value:xp}].map(s=>(
           <div key={s.label} style={{textAlign:"center"}}>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:700,color:"#fff"}}>{s.value}</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,.35)",marginTop:2}}>{s.label}</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:700,color:"#fff"}}>{s.value}</div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,.3)",marginTop:1}}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      <div style={{padding:"32px 20px 100px"}}>
-        <p style={{color:"rgba(255,255,255,.35)",fontSize:12,fontWeight:600,letterSpacing:2,marginBottom:16,paddingLeft:4}}>CHOOSE YOUR MATCH</p>
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {Object.values(PERSONALITIES).map((p,i)=>(
-            <div
-              key={p.id}
-              className="persona-card"
-              onClick={()=>onStart(p)}
-              style={{borderRadius:20,padding:"16px 20px",display:"flex",alignItems:"center",gap:16,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",position:"relative",overflow:"hidden",animationDelay:`${i*0.08}s`}}
-            >
-              <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg,${p.color}18,transparent)`,pointerEvents:"none"}}/>
-              <div style={{width:52,height:52,borderRadius:16,background:`linear-gradient(135deg,${p.color},${p.color}99)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontFamily:"'Syne',sans-serif",fontWeight:800,color:"#fff",flexShrink:0,boxShadow:`0 8px 20px ${p.color}40`}}>{p.avatar}</div>
+      <div style={{padding:"24px 16px 40px"}}>
+        <p style={{color:"rgba(255,255,255,.3)",fontSize:11,fontWeight:600,letterSpacing:2,marginBottom:12,paddingLeft:2}}>CHOOSE YOUR MATCH</p>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {Object.values(PERSONALITIES).map(p=>(
+            <div key={p.id} className="persona-card" onClick={()=>onStart(p)}
+              style={{borderRadius:18,padding:"14px 16px",display:"flex",alignItems:"center",gap:14,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.07)",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg,${p.color}15,transparent)`,pointerEvents:"none"}}/>
+              <div style={{width:48,height:48,borderRadius:14,background:`linear-gradient(135deg,${p.color},${p.color}99)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,color:"#fff",fontSize:20,flexShrink:0,boxShadow:`0 6px 16px ${p.color}35`}}>{p.avatar}</div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:17,color:"#fff"}}>{p.name}</span>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,color:"#fff"}}>{p.name}</span>
                   <span style={{fontSize:14}}>{p.emoji}</span>
                 </div>
-                <div style={{fontSize:12,color:p.color,fontWeight:600,marginTop:2}}>{p.tag}</div>
-                <div style={{fontSize:12,color:"rgba(255,255,255,.35)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.bio}</div>
+                <div style={{fontSize:11,color:p.color,fontWeight:600,marginTop:1}}>{p.tag}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,.3)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.bio}</div>
               </div>
-              <div style={{color:"rgba(255,255,255,.2)",fontSize:18}}>›</div>
+              <div style={{color:"rgba(255,255,255,.2)",fontSize:20,fontWeight:300}}>›</div>
             </div>
           ))}
         </div>
@@ -178,85 +163,75 @@ function HomeScreen({apiKey, onStart, rizzScore, xp}) {
   );
 }
 
-function ChatScreen({personality:p, apiKey, onBack, rizzScore, setRizzScore, xp, setXp, stats, setStats}) {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [analysis, setAnalysis] = useState(null);
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [coachMode, setCoachMode] = useState(false);
-  const [suggestions, setSuggestions] = useState(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [relStats, setRelStats] = useState({interest:50,attraction:40,comfort:30,fun:45});
-  const [apiErr, setApiErr] = useState("");
-  const chatRef = useRef(null);
-  const inputRef = useRef(null);
-  const level = getLevel(xp);
-  const nextLevel = LEVELS[level.index+1];
-  const xpProgress = nextLevel ? ((xp-level.min)/(nextLevel.min-level.min))*100 : 100;
+// ── CHAT SCREEN ───────────────────────────────────────────────────────────────
+function ChatScreen({personality:p,apiKey,onBack,rizzScore,setRizzScore,xp,setXp,stats,setStats}){
+  const [messages,setMessages]=useState([]);
+  const [input,setInput]=useState("");
+  const [isTyping,setIsTyping]=useState(false);
+  const [analysis,setAnalysis]=useState(null);
+  const [showAnalysis,setShowAnalysis]=useState(false);
+  const [coachMode,setCoachMode]=useState(false);
+  const [suggestions,setSuggestions]=useState(null);
+  const [showSuggestions,setShowSuggestions]=useState(false);
+  const [relStats,setRelStats]=useState({interest:50,attraction:40,comfort:30,fun:45});
+  const [apiErr,setApiErr]=useState("");
+  const chatRef=useRef(null);
+  const inputRef=useRef(null);
+  const level=getLevel(xp);
+  const nextLevel=LEVELS[level.index+1];
+  const xpProgress=nextLevel?((xp-level.min)/(nextLevel.min-level.min))*100:100;
 
   useEffect(()=>{
-    if(chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    if(chatRef.current) chatRef.current.scrollTop=chatRef.current.scrollHeight;
   },[messages,isTyping]);
 
-  // Opening message
   useEffect(()=>{
     const openings={flirty:"hey stranger 👀",sarcastic:"oh look someone new",shy:"hi.. 🌸",soft:"Hey! 💛 How are you?",social:"omg hi!! who gave you my number lol",mature:"Hey. What's on your mind?"};
     let cancelled=false;
     setIsTyping(true);
-    const delay=1200+Math.random()*800;
     const t=setTimeout(()=>{
-      if(cancelled) return;
+      if(cancelled)return;
       setIsTyping(false);
       setMessages([{id:Date.now(),role:"assistant",text:openings[p.id],time:now(),reaction:null}]);
-    },delay);
+    },1200+Math.random()*800);
     return()=>{cancelled=true;clearTimeout(t)};
   },[]);
 
   const now=()=>new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
 
-  const analyzeMsg = async(text)=>{
+  const analyzeMsg=async(text)=>{
     try{
-      const raw = await callOpenAI([{role:"user",content:`Analyze this text message from a guy to a girl: "${text}"`}],ANALYSIS_SYSTEM,400,apiKey);
-      const clean=raw.replace(/```json|```/g,"").trim();
-      return JSON.parse(clean);
-    }catch(e){return null;}
-  };
-
-  const getCoach = async(text)=>{
-    const prompt=`A guy is about to send this text to a girl: "${text}"\nReturn ONLY JSON:\n{"safe":"<safer version>","confident":"<more confident version>","funny":"<funnier version>","risky":"<bold/flirty version>"}`;
-    try{
-      const raw=await callOpenAI([{role:"user",content:prompt}],"You are a dating coach. Return only JSON, no markdown.",350,apiKey);
+      const raw=await callOpenAI([{role:"user",content:`Analyze this text message from a guy to a girl: "${text}"`}],ANALYSIS_SYSTEM,400,apiKey);
       return JSON.parse(raw.replace(/```json|```/g,"").trim());
     }catch{return null;}
   };
 
-  const sendMessage = useCallback(async(textOverride)=>{
+  const getCoach=async(text)=>{
+    const prompt=`Guy about to send: "${text}"\nReturn ONLY JSON:\n{"safe":"<safer>","confident":"<more confident>","funny":"<funnier>","risky":"<bold/flirty>"}`;
+    try{
+      const raw=await callOpenAI([{role:"user",content:prompt}],"Dating coach. Return only JSON, no markdown.",300,apiKey);
+      return JSON.parse(raw.replace(/```json|```/g,"").trim());
+    }catch{return null;}
+  };
+
+  const sendMessage=useCallback(async(textOverride)=>{
     const text=(textOverride||input).trim();
-    if(!text||isTyping) return;
-    setInput(""); setShowSuggestions(false); setSuggestions(null); setApiErr("");
+    if(!text||isTyping)return;
+    setInput("");setShowSuggestions(false);setSuggestions(null);setApiErr("");
     const id=Date.now();
     setMessages(prev=>[...prev,{id,role:"user",text,time:now(),status:"sent",analysisResult:null}]);
-
     const history=[...messages.map(m=>({role:m.role,content:m.text})),{role:"user",content:text}];
-
     try{
       setIsTyping(true);
-      const [analysisResult, aiReply] = await Promise.all([
+      const [analysisResult,aiReply]=await Promise.all([
         analyzeMsg(text),
-        (async()=>{
-          await new Promise(r=>setTimeout(r,600+Math.random()*1200));
-          return callOpenAI(history,p.systemPrompt,180,apiKey);
-        })(),
+        (async()=>{await new Promise(r=>setTimeout(r,600+Math.random()*1200));return callOpenAI(history,p.systemPrompt,180,apiKey);})(),
       ]);
       setIsTyping(false);
-
       setMessages(prev=>prev.map(m=>m.id===id?{...m,status:"read",analysisResult}:m));
       if(aiReply) setMessages(prev=>[...prev,{id:Date.now()+1,role:"assistant",text:aiReply.trim(),time:now(),reaction:null}]);
-
       if(analysisResult){
-        setAnalysis(analysisResult);
-        setShowAnalysis(true);
+        setAnalysis(analysisResult);setShowAnalysis(true);
         setTimeout(()=>setShowAnalysis(false),5000);
         const cls=analysisResult.classification;
         setStats(s=>({good:s.good+(cls==="Good Move"?1:0),neutral:s.neutral+(cls==="Neutral"?1:0),bad:s.bad+(cls==="Bad Move"?1:0)}));
@@ -277,65 +252,72 @@ function ChatScreen({personality:p, apiKey, onBack, rizzScore, setRizzScore, xp,
   },[input,isTyping,messages,p,apiKey]);
 
   const handleCoach=async()=>{
-    if(!input.trim()) return;
+    if(!input.trim())return;
     const s=await getCoach(input.trim());
     if(s){setSuggestions(s);setShowSuggestions(true);}
   };
 
-  return (
-    <div style={{height:"100dvh",background:"#090910",display:"flex",flexDirection:"column",maxWidth:480,margin:"0 auto",position:"relative"}}>
+  const clsColor=cls=>cls==="Good Move"?"#10b981":cls==="Bad Move"?"#ef4444":"#9ca3af";
+  const clsIcon=cls=>cls==="Good Move"?"✅":cls==="Bad Move"?"❌":"⚪";
+  const clsBg=cls=>cls==="Good Move"?"rgba(16,185,129,.2)":cls==="Bad Move"?"rgba(239,68,68,.2)":"rgba(156,163,175,.2)";
+  const clsBorder=cls=>cls==="Good Move"?"rgba(16,185,129,.3)":cls==="Bad Move"?"rgba(239,68,68,.3)":"rgba(156,163,175,.3)";
 
-      {/* Header */}
-      <div style={{padding:"12px 16px",background:"rgba(9,9,16,.97)",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
-        <button onClick={onBack} style={{background:"rgba(255,255,255,.06)",border:"none",borderRadius:10,padding:"8px 10px",color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:16}}>←</button>
-        <div style={{width:42,height:42,borderRadius:14,background:`linear-gradient(135deg,${p.color},${p.color}88)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,color:"#fff",fontSize:16,boxShadow:`0 4px 12px ${p.color}40`}}>{p.avatar}</div>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,color:"#fff"}}>{p.name}</div>
-          <div style={{fontSize:11,color:p.color,fontWeight:600}}>{p.tag}</div>
+  return(
+    <div style={{height:"100%",background:"#090910",display:"flex",flexDirection:"column",position:"relative"}}>
+
+      {/* ── Header ── */}
+      <div style={{padding:"10px 14px 10px",background:"rgba(9,9,16,.98)",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"rgba(255,255,255,.07)",border:"none",borderRadius:10,width:36,height:36,color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:17,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>←</button>
+        <div style={{width:40,height:40,borderRadius:13,background:`linear-gradient(135deg,${p.color},${p.color}88)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,color:"#fff",fontSize:15,boxShadow:`0 4px 10px ${p.color}40`,flexShrink:0}}>{p.avatar}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:"#fff",display:"flex",alignItems:"center",gap:5}}>
+            {p.name} <span style={{fontSize:13}}>{p.emoji}</span>
+          </div>
+          <div style={{fontSize:10,color:p.color,fontWeight:600}}>{p.tag}</div>
         </div>
-        <div style={{background:`linear-gradient(135deg,${p.color}30,${p.color}15)`,border:`1px solid ${p.color}40`,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:p.color}}>{rizzScore} rizz</div>
+        <div style={{background:`${p.color}20`,border:`1px solid ${p.color}40`,borderRadius:20,padding:"4px 10px",fontSize:12,fontWeight:700,color:p.color,flexShrink:0}}>{rizzScore} rizz</div>
       </div>
 
-      {/* Rizz bar */}
-      <div style={{padding:"8px 16px",background:"rgba(9,9,16,.8)",flexShrink:0}}>
+      {/* ── Rizz bar ── */}
+      <div style={{padding:"7px 14px 5px",background:"rgba(9,9,16,.9)",flexShrink:0}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-          <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>{getRizzLabel(rizzScore)}</span>
-          <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>{stats.good}✅ {stats.neutral}⚪ {stats.bad}❌</span>
+          <span style={{fontSize:10,color:"rgba(255,255,255,.35)"}}>{getRizzLabel(rizzScore)}</span>
+          <span style={{fontSize:10,color:"rgba(255,255,255,.35)"}}>{stats.good}✅ {stats.neutral}⚪ {stats.bad}❌</span>
         </div>
         <div style={{height:3,background:"rgba(255,255,255,.06)",borderRadius:100,overflow:"hidden"}}>
-          <div style={{width:`${rizzScore}%`,height:"100%",background:`linear-gradient(90deg,${p.color},#c084fc)`,borderRadius:100,transition:"width .5s cubic-bezier(.34,1.56,.64,1)"}}/>
+          <div style={{width:`${rizzScore}%`,height:"100%",background:`linear-gradient(90deg,${p.color},#c084fc)`,borderRadius:100,transition:"width .5s ease"}}/>
         </div>
       </div>
 
-      {/* Rel stats */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,padding:"6px 16px",flexShrink:0}}>
+      {/* ── Rel stats ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,padding:"5px 14px 6px",flexShrink:0}}>
         {Object.entries(relStats).map(([k,v])=>(
           <div key={k} style={{textAlign:"center"}}>
-            <div style={{height:2,background:"rgba(255,255,255,.06)",borderRadius:100,overflow:"hidden",marginBottom:3}}>
+            <div style={{height:2,background:"rgba(255,255,255,.06)",borderRadius:100,overflow:"hidden",marginBottom:2}}>
               <div style={{width:`${v}%`,height:"100%",background:p.color,borderRadius:100,opacity:.8,transition:"width .4s ease"}}/>
             </div>
-            <span style={{fontSize:9,color:"rgba(255,255,255,.3)",textTransform:"capitalize"}}>{k}</span>
+            <span style={{fontSize:9,color:"rgba(255,255,255,.28)",textTransform:"capitalize"}}>{k}</span>
           </div>
         ))}
       </div>
 
-      {/* API error */}
-      {apiErr && <div style={{background:"rgba(239,68,68,.12)",border:"1px solid rgba(239,68,68,.3)",margin:"0 16px 4px",borderRadius:10,padding:"8px 12px",fontSize:12,color:"#ef4444",flexShrink:0}}>{apiErr}</div>}
+      {/* ── API error ── */}
+      {apiErr&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",margin:"0 14px 4px",borderRadius:10,padding:"7px 12px",fontSize:12,color:"#ef4444",flexShrink:0}}>{apiErr}</div>}
 
-      {/* Messages */}
-      <div ref={chatRef} style={{flex:1,overflowY:"auto",padding:"16px 16px 8px",display:"flex",flexDirection:"column",gap:12}}>
+      {/* ── Messages ── */}
+      <div ref={chatRef} className="chat-scroll">
         {messages.map(msg=>(
           <div key={msg.id} className="fade-up" style={{display:"flex",flexDirection:"column",alignItems:msg.role==="user"?"flex-end":"flex-start"}}>
-            <div className="msg-bubble" style={{maxWidth:"78%",padding:"10px 14px",borderRadius:msg.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",background:msg.role==="user"?`linear-gradient(135deg,${p.color},${p.color}cc)`:"rgba(255,255,255,.08)",color:"#fff",fontSize:15,lineHeight:1.45,wordBreak:"break-word",position:"relative",boxShadow:msg.role==="user"?`0 4px 16px ${p.color}30`:"0 2px 8px rgba(0,0,0,.3)"}}>
+            <div className="msg-bubble" style={{maxWidth:"80%",padding:"9px 13px",borderRadius:msg.role==="user"?"17px 17px 4px 17px":"17px 17px 17px 4px",background:msg.role==="user"?`linear-gradient(135deg,${p.color},${p.color}cc)`:"rgba(255,255,255,.09)",color:"#fff",fontSize:15,lineHeight:1.45,wordBreak:"break-word",position:"relative",boxShadow:msg.role==="user"?`0 3px 12px ${p.color}28`:"0 2px 6px rgba(0,0,0,.25)"}}>
               {msg.text}
-              {msg.reaction && <span style={{position:"absolute",bottom:-10,right:msg.role==="user"?8:"auto",left:msg.role==="assistant"?8:"auto",fontSize:15,background:"rgba(9,9,16,.9)",borderRadius:20,padding:"0 4px",border:"1px solid rgba(255,255,255,.1)"}}>{msg.reaction}</span>}
+              {msg.reaction&&<span style={{position:"absolute",bottom:-10,right:msg.role==="user"?8:"auto",left:msg.role==="assistant"?8:"auto",fontSize:14,background:"rgba(9,9,16,.95)",borderRadius:20,padding:"0 4px",border:"1px solid rgba(255,255,255,.1)"}}>{msg.reaction}</span>}
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:5,flexDirection:msg.role==="user"?"row-reverse":"row"}}>
-              <span style={{fontSize:10,color:"rgba(255,255,255,.25)"}}>{msg.time}</span>
-              {msg.role==="user"&&msg.status&&<span style={{fontSize:10,color:"rgba(255,255,255,.25)"}}>{msg.status==="read"?"✓✓":"✓"}</span>}
+            <div style={{display:"flex",alignItems:"center",gap:5,marginTop:msg.reaction?14:5,flexDirection:msg.role==="user"?"row-reverse":"row",flexWrap:"wrap",justifyContent:msg.role==="user"?"flex-start":"flex-start"}}>
+              <span style={{fontSize:10,color:"rgba(255,255,255,.22)"}}>{msg.time}</span>
+              {msg.role==="user"&&msg.status&&<span style={{fontSize:10,color:"rgba(255,255,255,.22)"}}>{msg.status==="read"?"✓✓":"✓"}</span>}
               {msg.role==="user"&&msg.analysisResult&&(
-                <div style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:msg.analysisResult.classification==="Good Move"?"rgba(16,185,129,.2)":msg.analysisResult.classification==="Bad Move"?"rgba(239,68,68,.2)":"rgba(156,163,175,.2)",color:msg.analysisResult.classification==="Good Move"?"#10b981":msg.analysisResult.classification==="Bad Move"?"#ef4444":"#9ca3af",border:`1px solid ${msg.analysisResult.classification==="Good Move"?"rgba(16,185,129,.3)":msg.analysisResult.classification==="Bad Move"?"rgba(239,68,68,.3)":"rgba(156,163,175,.3)"}`}}>
-                  {msg.analysisResult.classification==="Good Move"?"✅":msg.analysisResult.classification==="Bad Move"?"❌":"⚪"} {msg.analysisResult.summary}
+                <div style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:clsBg(msg.analysisResult.classification),color:clsColor(msg.analysisResult.classification),border:`1px solid ${clsBorder(msg.analysisResult.classification)}`}}>
+                  {clsIcon(msg.analysisResult.classification)} {msg.analysisResult.summary}
                 </div>
               )}
               {msg.role==="assistant"&&["❤️","😂","🔥"].map(e=>(
@@ -346,29 +328,29 @@ function ChatScreen({personality:p, apiKey, onBack, rizzScore, setRizzScore, xp,
         ))}
         {isTyping&&(
           <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
-            <div style={{width:36,height:36,borderRadius:12,background:`linear-gradient(135deg,${p.color},${p.color}88)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>{p.avatar}</div>
-            <div style={{background:"rgba(255,255,255,.08)",borderRadius:"18px 18px 18px 4px",padding:"12px 16px",display:"flex",gap:5,alignItems:"center"}}>
+            <div style={{width:32,height:32,borderRadius:11,background:`linear-gradient(135deg,${p.color},${p.color}88)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:13,color:"#fff"}}>{p.avatar}</div>
+            <div style={{background:"rgba(255,255,255,.09)",borderRadius:"16px 16px 16px 4px",padding:"11px 14px",display:"flex",gap:5,alignItems:"center"}}>
               <span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/>
             </div>
           </div>
         )}
       </div>
 
-      {/* Analysis toast */}
+      {/* ── Analysis toast ── */}
       {showAnalysis&&analysis&&(
-        <div className="fade-up" style={{position:"absolute",bottom:160,left:16,right:16,background:"rgba(9,9,16,.97)",border:`1px solid ${analysis.classification==="Good Move"?"rgba(16,185,129,.4)":analysis.classification==="Bad Move"?"rgba(239,68,68,.4)":"rgba(156,163,175,.2)"}`,borderRadius:20,padding:16,backdropFilter:"blur(20px)",zIndex:100,boxShadow:"0 20px 60px rgba(0,0,0,.6)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-            <span style={{fontSize:18}}>{analysis.classification==="Good Move"?"✅":analysis.classification==="Bad Move"?"❌":"⚪"}</span>
-            <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:analysis.classification==="Good Move"?"#10b981":analysis.classification==="Bad Move"?"#ef4444":"#9ca3af"}}>{analysis.classification}</span>
+        <div className="fade-up" style={{position:"absolute",bottom:130,left:12,right:12,background:"rgba(9,9,16,.97)",border:`1px solid ${clsBorder(analysis.classification)}`,borderRadius:18,padding:14,zIndex:100,boxShadow:"0 16px 48px rgba(0,0,0,.7)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+            <span style={{fontSize:18}}>{clsIcon(analysis.classification)}</span>
+            <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,color:clsColor(analysis.classification)}}>{analysis.classification}</span>
             <span style={{marginLeft:"auto",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:20,color:"#fff"}}>{analysis.score}</span>
           </div>
-          <p style={{fontSize:13,color:"rgba(255,255,255,.6)",lineHeight:1.5,marginBottom:analysis.better?8:0}}>{analysis.explanation}</p>
-          {analysis.better&&<div style={{background:"rgba(255,255,255,.05)",borderRadius:10,padding:"8px 12px",fontSize:12,color:"rgba(255,255,255,.5)"}}>💡 <span style={{color:"#c084fc"}}>Try: </span>"{analysis.better}"</div>}
+          <p style={{fontSize:13,color:"rgba(255,255,255,.6)",lineHeight:1.5,marginBottom:analysis.better?7:0}}>{analysis.explanation}</p>
+          {analysis.better&&<div style={{background:"rgba(255,255,255,.05)",borderRadius:9,padding:"7px 11px",fontSize:12,color:"rgba(255,255,255,.5)"}}>💡 <span style={{color:"#c084fc"}}>Try: </span>"{analysis.better}"</div>}
           {analysis.metrics&&(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginTop:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginTop:9}}>
               {[{k:"confidence",label:"Conf"},{k:"humor",label:"Humor"},{k:"cringe_risk",label:"Cringe"}].map(({k,label})=>(
                 <div key={k} style={{textAlign:"center"}}>
-                  <div style={{height:2,background:"rgba(255,255,255,.06)",borderRadius:100,overflow:"hidden",marginBottom:3}}>
+                  <div style={{height:2,background:"rgba(255,255,255,.06)",borderRadius:100,overflow:"hidden",marginBottom:2}}>
                     <div style={{width:`${analysis.metrics[k]}%`,height:"100%",background:k==="cringe_risk"?"#ef4444":p.color,borderRadius:100}}/>
                   </div>
                   <span style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>{label}</span>
@@ -379,41 +361,40 @@ function ChatScreen({personality:p, apiKey, onBack, rizzScore, setRizzScore, xp,
         </div>
       )}
 
-      {/* Coach suggestions */}
+      {/* ── Coach suggestions ── */}
       {showSuggestions&&suggestions&&(
-        <div className="fade-up" style={{position:"absolute",bottom:145,left:16,right:16,background:"rgba(9,9,16,.98)",border:"1px solid rgba(255,255,255,.1)",borderRadius:20,padding:16,backdropFilter:"blur(20px)",zIndex:101,boxShadow:"0 20px 60px rgba(0,0,0,.7)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div className="fade-up" style={{position:"absolute",bottom:130,left:12,right:12,background:"rgba(9,9,16,.98)",border:"1px solid rgba(255,255,255,.1)",borderRadius:18,padding:14,zIndex:101,boxShadow:"0 16px 48px rgba(0,0,0,.8)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,color:"#fff"}}>🎯 Coach Suggestions</span>
-            <button onClick={()=>setShowSuggestions(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,.4)",cursor:"pointer",fontSize:18}}>×</button>
+            <button onClick={()=>setShowSuggestions(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,.4)",cursor:"pointer",fontSize:20,lineHeight:1}}>×</button>
           </div>
           {[{key:"safe",label:"Safe",color:"#10b981",icon:"🛡️"},{key:"confident",label:"Confident",color:"#3b82f6",icon:"💪"},{key:"funny",label:"Funny",color:"#f59e0b",icon:"😂"},{key:"risky",label:"Risky",color:"#ef4444",icon:"🔥"}].map(({key,label,color,icon})=>(
-            <button key={key} className="suggestion-btn" onClick={()=>{setInput(suggestions[key]);setShowSuggestions(false);}} style={{background:`${color}15`,border:`1px solid ${color}30`}}>
-              <span style={{fontSize:14}}>{icon}</span>
-              <div>
+            <button key={key} className="suggestion-btn" onClick={()=>{setInput(suggestions[key]);setShowSuggestions(false);}} style={{background:`${color}12`,border:`1px solid ${color}28`}}>
+              <span style={{fontSize:16}}>{icon}</span>
+              <div style={{minWidth:0}}>
                 <div style={{fontSize:11,color,fontWeight:700,marginBottom:2}}>{label}</div>
-                <div style={{fontSize:13,color:"rgba(255,255,255,.7)",lineHeight:1.4}}>{suggestions[key]}</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.65)",lineHeight:1.4,wordBreak:"break-word"}}>{suggestions[key]}</div>
               </div>
             </button>
           ))}
         </div>
       )}
 
-      {/* Input bar */}
-      <div style={{padding:"10px 16px 24px",background:"rgba(9,9,16,.97)",borderTop:"1px solid rgba(255,255,255,.06)",flexShrink:0}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-          <button
-            className="coach-toggle"
-            onClick={()=>setCoachMode(v=>!v)}
-            style={{background:coachMode?`${p.color}20`:"rgba(255,255,255,.05)",borderColor:coachMode?`${p.color}40`:"rgba(255,255,255,.08)",color:coachMode?p.color:"rgba(255,255,255,.3)"}}
-          >🎯 Coach Mode {coachMode?"ON":"OFF"}</button>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",gap:4}}>
+      {/* ── Input bar ── */}
+      <div style={{padding:"8px 14px 20px",background:"rgba(9,9,16,.98)",borderTop:"1px solid rgba(255,255,255,.06)",flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+          <button className="coach-toggle" onClick={()=>setCoachMode(v=>!v)}
+            style={{background:coachMode?`${p.color}18`:"rgba(255,255,255,.05)",borderColor:coachMode?`${p.color}40`:"rgba(255,255,255,.08)",color:coachMode?p.color:"rgba(255,255,255,.3)"}}>
+            🎯 Coach {coachMode?"ON":"OFF"}
+          </button>
+          <div style={{fontSize:10,color:"rgba(255,255,255,.22)",display:"flex",alignItems:"center",gap:3}}>
             <span style={{color:level.color,fontWeight:700}}>{level.name}</span>
-            <span>· {xp} XP</span>
+            <span>· {xp}xp</span>
           </div>
         </div>
-        {nextLevel&&<div style={{height:2,background:"rgba(255,255,255,.05)",borderRadius:100,overflow:"hidden",marginBottom:8}}><div style={{width:`${xpProgress}%`,height:"100%",background:level.color,borderRadius:100,transition:"width .4s ease"}}/></div>}
-        <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
-          <div style={{flex:1,background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.1)",borderRadius:20,padding:"11px 16px",display:"flex",alignItems:"center",gap:8}}>
+        {nextLevel&&<div style={{height:2,background:"rgba(255,255,255,.05)",borderRadius:100,overflow:"hidden",marginBottom:7}}><div style={{width:`${xpProgress}%`,height:"100%",background:level.color,borderRadius:100,transition:"width .4s ease"}}/></div>}
+        <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+          <div style={{flex:1,background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.1)",borderRadius:22,padding:"10px 14px",display:"flex",alignItems:"center",gap:6}}>
             <textarea
               ref={inputRef}
               value={input}
@@ -423,41 +404,34 @@ function ChatScreen({personality:p, apiKey, onBack, rizzScore, setRizzScore, xp,
               rows={1}
               style={{flex:1,background:"none",border:"none",color:"#fff",fontSize:15,resize:"none",lineHeight:1.4,maxHeight:80,overflow:"auto",fontFamily:"'DM Sans',sans-serif"}}
             />
-            {coachMode&&input.trim()&&<button onClick={handleCoach} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,opacity:.6}}>🎯</button>}
+            {coachMode&&input.trim()&&<button onClick={handleCoach} style={{background:"none",border:"none",cursor:"pointer",fontSize:17,opacity:.6,flexShrink:0}}>🎯</button>}
           </div>
-          <button
-            className="send-btn"
-            onClick={()=>sendMessage()}
-            disabled={!input.trim()||isTyping}
-            style={{width:46,height:46,borderRadius:16,background:input.trim()&&!isTyping?`linear-gradient(135deg,${p.color},${p.color}cc)`:"rgba(255,255,255,.07)",border:"none",cursor:input.trim()&&!isTyping?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:"#fff",boxShadow:input.trim()&&!isTyping?`0 4px 16px ${p.color}40`:"none",flexShrink:0}}
-          >↑</button>
+          <button className="send-btn" onClick={()=>sendMessage()} disabled={!input.trim()||isTyping}
+            style={{width:44,height:44,borderRadius:15,background:input.trim()&&!isTyping?`linear-gradient(135deg,${p.color},${p.color}cc)`:"rgba(255,255,255,.07)",border:"none",cursor:input.trim()&&!isTyping?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:"#fff",boxShadow:input.trim()&&!isTyping?`0 4px 14px ${p.color}40`:"none",flexShrink:0,transition:"all .18s ease"}}>
+            ↑
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── ROOT APP ──────────────────────────────────────────────────────────────────
-function App() {
-  const [screen, setScreen] = useState("key");
-  const [apiKey, setApiKey] = useState("");
-  const [personality, setPersonality] = useState(null);
-  const [rizzScore, setRizzScore] = useState(50);
-  const [xp, setXp] = useState(0);
-  const [stats, setStats] = useState({good:0,neutral:0,bad:0});
+// ── ROOT ──────────────────────────────────────────────────────────────────────
+function App(){
+  const [screen,setScreen]=useState("key");
+  const [apiKey,setApiKey]=useState("");
+  const [personality,setPersonality]=useState(null);
+  const [rizzScore,setRizzScore]=useState(50);
+  const [xp,setXp]=useState(0);
+  const [stats,setStats]=useState({good:0,neutral:0,bad:0});
 
   if(screen==="key") return <KeyScreen onSave={k=>{setApiKey(k);setScreen("home");}}/>;
-  if(screen==="chat"&&personality) return (
-    <ChatScreen
-      personality={personality}
-      apiKey={apiKey}
-      onBack={()=>setScreen("home")}
+  if(screen==="chat"&&personality) return(
+    <ChatScreen personality={personality} apiKey={apiKey} onBack={()=>setScreen("home")}
       rizzScore={rizzScore} setRizzScore={setRizzScore}
-      xp={xp} setXp={setXp}
-      stats={stats} setStats={setStats}
-    />
+      xp={xp} setXp={setXp} stats={stats} setStats={setStats}/>
   );
-  return <HomeScreen apiKey={apiKey} onStart={p=>{setPersonality(p);setScreen("chat");}} rizzScore={rizzScore} xp={xp}/>;
+  return <HomeScreen onStart={p=>{setPersonality(p);setScreen("chat");}} rizzScore={rizzScore} xp={xp}/>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
